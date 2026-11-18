@@ -265,12 +265,28 @@ final class Helper {
     }
 
     /**
-     * TCG's translation cache: 512 MiB as on the PC for the 4 GiB VM; a smaller VM on a smaller phone 256 (the
-     * buffer fills over a long job and stays: it is the phone's memory too). A smaller cache translates again
-     * more often, not wrongly.
+     * TCG's translation cache: 512 MiB as on the PC for the 4 GiB VM, 384 for a 2-3 GiB VM (a long job keeps
+     * filling it: build-root ran 117 min at 256 MiB and translated again and again), 256 below (the buffer fills
+     * over a long job and stays: it is the phone's memory too). A smaller cache translates again more often, not
+     * wrongly.
      */
     private static int tbSizeMiB(int mib) {
-        return mib >= 4096 ? 512 : 256;
+        return mib >= 3072 ? 512 : mib >= 2048 ? 384 : 256;
+    }
+
+    /**
+     * The largest job RAM at or below @want whose whole footprint (needBytes: guest RAM, the translation cache and
+     * QEMU itself) fits in @availBytes now, not below @floorMiB. A run that starts over what the phone can hold is
+     * ended by Android's memory killer minutes in (2026-11-18: an 8 GB phone with 2.8 GB free was given 3 GiB,
+     * "the VM takes up to 3.8 GB", and lost 6 min of build-root when lmkd ended the app half way). A size that fits
+     * also keeps the guest's own RAM off zram, which is what makes a copy crawl.
+     */
+    static int fitToAvailable(long availBytes, int want, int floorMiB) {
+        int mib = Math.min(Math.max(want, floorMiB), 4096);
+        while (mib > floorMiB && needBytes(mib) > availBytes) {
+            mib = smaller(mib, floorMiB);
+        }
+        return mib;
     }
 
     /**
@@ -278,14 +294,16 @@ final class Helper {
      * freeing (MemoryCleaner, when the user allows it), else memoryNote for the setup screens. Never blocks the job.
      */
     private static void beforeJob(Context c, int mib) {
-        long need = needBytes(mib), avail = available(c);
-        if (avail >= need) {
-            memoryNote = null;
-            return;
-        }
-        if (MemoryCleaner.beforeHelper(c)) {
+        long avail = available(c);
+        if (avail < needBytes(mib) && MemoryCleaner.beforeHelper(c)) {
             avail = available(c);
         }
+        noteMemory(c, mib, avail);
+    }
+
+    /** What the setup screens say of memory for a VM of @mib, given @avail available; clears the note when it fits. */
+    private static void noteMemory(Context c, int mib, long avail) {
+        long need = needBytes(mib);
         if (avail >= need) {
             memoryNote = null;
             return;
@@ -439,9 +457,18 @@ final class Helper {
         return run(c, job, disks, cpus, dir, l, cancelled, allowNative, ramMiB(c, FLOOR_WORK_IN_RAM));
     }
 
-    /** As run() above, with @ramMiB of guest RAM (ramMiB(), or smaller() for the retry after the memory killer). */
+    /** As run() above, with @ramMiB of guest RAM and the floor that size may not go below. */
     static Result run(Context c, String job, List<Disk> disks, int cpus, File dir, Listener l, BooleanSupplier cancelled,
             boolean allowNative, int ramMiB) throws IOException {
+        return run(c, job, disks, cpus, dir, l, cancelled, allowNative, ramMiB, FLOOR_WORK_IN_RAM);
+    }
+
+    /**
+     * As run() above; @ramMiB is the guest RAM the job would like, @floorMiB the least it may be given when what the
+     * phone has free now is less than that wants (fitToAvailable).
+     */
+    static Result run(Context c, String job, List<Disk> disks, int cpus, File dir, Listener l, BooleanSupplier cancelled,
+            boolean allowNative, int ramMiB, int floorMiB) throws IOException {
         File[] k = files(c);
         dir.mkdirs();
         File serial = new File(dir, "serial.txt");
@@ -492,6 +519,10 @@ final class Helper {
         // its own session: it would build into files this run is about to make again
         File pidFile = new File(dir, "pid");
         killLeftover(c, pidFile);
+        // A size that fits now, not the phone's ideal one: a VM started over what the phone can hold is ended by
+        // Android's memory killer minutes in (2026-11-18: 6 min of build-root lost at 3 GiB on 2.8 GB free) and
+        // while it lasts the guest's RAM is pushed onto zram, which is what makes a copy crawl.
+        ramMiB = fitToAvailable(available(c), ramMiB, floorMiB);
         beforeJob(c, ramMiB);
         if (memoryKills(c) > 0 && memoryNote == null) {
             memoryNote = "Android closed the app for low memory earlier, so this run uses less memory and takes longer.";
