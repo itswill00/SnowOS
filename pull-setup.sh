@@ -40,6 +40,8 @@ for os in ios26 watchos; do
     cp "$src/$os/steps/"*.sh "$a/setup/steps/$os/"
     find "$src/$os/scripts" -maxdepth 1 -type f \( -name '*.py' -o -name '*.sh' -o -name '*.txt' -o -name '*.hex' \)         -exec cp {} "$a/setup/scripts/$os/" \;
 done
+# the fork's tuned root copy over the checkout's (the parallel one, see helper-patch):
+[ ! -f "$here/setup/helper-patch/mk-root26.sh" ] || cp "$here/setup/helper-patch/mk-root26.sh" "$a/setup/scripts/ios26/mk-root26.sh"
 # the iOS 26 setup leaves SystemAppMigrator out of the disk (asoft-ios 5369636, PhoneSetup26 iosApps): an older
 # checkout's root26-staged.py would build the 52-minute variant without saying so
 grep -q skip_system_app_migrator "$a/setup/scripts/ios26/root26-staged.py" \
