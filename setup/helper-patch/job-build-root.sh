@@ -1,0 +1,121 @@
+#!/bin/bash
+# Helper job build-root: the iOS root disk, ready to boot, from an IPSW.
+#
+# Disks, by virtio serial: ipsw (the .ipsw file itself, read-only), root (the disk to
+# build, 16 GiB), scratch (room for the three disk images, 7.5 GB for 20H392). The
+# images are unpacked from the zip into files on scratch: apfs-fuse reads a UDIF
+# image's trailer from the last 512 bytes of the file, and a loop device over the
+# image's bytes inside the zip cannot end in the middle of a sector. Then the same
+# steps as on Linux: tools/mkiosroot.sh, tools/sweet-root-tweaks.py, asoftinstalld
+# (tools/asoft-disk.sh installer) and the device name.
+set -euo pipefail
+cd /asoft
+
+progress() { echo "ASOFT: progress $*"; }
+disk() {
+    local d
+    for d in /sys/block/vd*; do
+        if [ "$(cat "$d/serial" 2>/dev/null)" = "$1" ]; then echo "/dev/${d##*/}"; return; fi
+    done
+    echo "ASOFT: no disk with serial $1" >&2
+    exit 1
+}
+ipsw=$(disk ipsw) root=$(disk root) scratch=$(disk scratch)
+
+progress 1 "reading the IPSW"
+declare -A size offset stored
+while read -r role o s st _; do
+    size[$role]=$s offset[$role]=$o stored[$role]=$st
+done < <(python3 ipsw-members.py "$ipsw")
+
+# no journal: nothing on scratch outlives this job
+mkfs.ext4 -q -F -O ^has_journal "$scratch"
+mkdir -p /mnt/scratch
+mount "$scratch" /mnt/scratch
+image() {    # image ROLE: unpack it to /mnt/scratch/ROLE.dmg
+    if [ "${stored[$1]}" = 1 ]; then
+        # stored, as Apple's are: its bytes as they are, no CRC pass in Python
+        dd if="$ipsw" of="/mnt/scratch/$1.dmg" bs=4M iflag=skip_bytes,count_bytes \
+            skip="${offset[$1]}" count="${size[$1]}" status=none
+    else
+        python3 ipsw-members.py "$ipsw" "$1" "/mnt/scratch/$1.dmg"
+    fi
+}
+total=$(( size[OS] + size[SystemOS] + size[AppOS] ))
+progress 2 "unpacking the iOS images ($(( total >> 20 )) MB)"
+# The unpack is minutes of no output (7 GB, longer under TCG): say how far it is every 20 s, 2 to 9 %,
+# from what the three files hold so far
+(
+    while sleep 20; do
+        got=$(du -sk --apparent-size /mnt/scratch 2>/dev/null | cut -f1)
+        [ -n "$got" ] || continue
+        pct=$((2 + got * 1024 * 7 / total))
+        progress $((pct > 9 ? 9 : pct)) "unpacking the iOS images ($((got >> 10)) of $((total >> 20)) MB)"
+    done
+) &
+unpacker=$!
+pids=()
+image OS & pids+=($!)
+image SystemOS & pids+=($!)
+image AppOS & pids+=($!)
+# each one's own status (a bare wait is 0 whatever they did): set -e stops on a failed unpack
+for p in "${pids[@]}"; do wait "$p"; done
+kill $unpacker 2>/dev/null || true
+for role in OS SystemOS AppOS; do
+    [ "$(stat -c %s "/mnt/scratch/$role.dmg")" = "${size[$role]}" ] || { echo "ASOFT: $role image short" >&2; exit 1; }
+done
+os=/mnt/scratch/OS.dmg sysos=/mnt/scratch/SystemOS.dmg appos=/mnt/scratch/AppOS.dmg
+
+# The copy is most of the time: report how far it is from the new volume's use
+# (about 12.5 GB for 20H392), with the rate over the last window and the time
+# the pace so far still needs, so a long copy reads as moving, not stuck.
+copy_want_kb=$((12500 * 1024))
+(
+    last=0
+    last_t=$(date +%s)
+    while sleep 20; do
+        used=$(df -k --output=source,used 2>/dev/null | sed -n "s#^$root  *##p")
+        [ -n "$used" ] || continue
+        now=$(date +%s)
+        dt=$((now - last_t)); dt=${dt:-20}
+        mb=$((used >> 10))
+        if [ "$last" -gt 0 ] && [ "$dt" -gt 0 ]; then
+            mbs=$(( (used - last) / 1024 / dt ))
+            left_mb=$(( (copy_want_kb - used) / 1024 ))
+            if [ "$mbs" -gt 0 ] && [ "$left_mb" -gt 0 ]; then
+                eta_min=$(( (left_mb / mbs + 59) / 60 ))
+                eta=",$left_mb MB left, about $((eta_min < 1 ? 1 : eta_min)) min at ${mbs} MB/s"
+            else
+                eta=",$left_mb MB left"
+            fi
+        else
+            eta=""
+        fi
+        pct=$((10 + used * 80 / copy_want_kb))
+        pct=$((pct > 90 ? 90 : pct))
+        progress "$pct" "copying iOS ($mb of $((copy_want_kb >> 10)) MB$eta)"
+        last=$used
+        last_t=$now
+    done
+) &
+watcher=$!
+progress 10 "copying iOS (the OS root, about 12.5 GB, in parallel)"
+bash mkiosroot.sh "$os" "$sysos" "$appos" "$root"
+kill $watcher 2>/dev/null || true
+umount /mnt/scratch
+
+progress 92 "setting iOS up (owners, the installer daemon, the device name)"
+mkdir -p /mnt/root
+mount -t hfsplus -o force "$root" /mnt/root
+python3 sweet-root-tweaks.py /mnt/root
+if [ -f asoftinstalld ]; then
+    bash asoft-disk.sh installer /mnt/root asoftinstalld
+fi
+# the device name is a nicety: a disk without it still boots
+bash asoft-disk.sh name /mnt/root "ASoftware iPhone" || echo "ASOFT: warning: device name not set"
+sync
+umount /mnt/root
+# Linux's hfsplus writes past the journal; let fsck_hfs settle the volume
+progress 95 "checking the disk (fsck)"
+fsck.hfsplus -f -y "$root" | tail -2 || true
+progress 100 "iOS disk ready"

@@ -26,6 +26,12 @@ if [ "${ONLY:-}" != setup ]; then
     cp "$src/installer/helper/out/initrd.gz" "$a/helper/initrd.gz.bin"
     cp "${KERNEL16K:-$src/installer/helper/out/Image16k.gz}" "$a/helper/Image16k.gz.bin"
     cp "$src/xnu/out-0103/kernel.development.sweet" "$a/xnu/"
+    # the fork's own tuned jobs into the helper's initramfs (setup/helper-patch):
+    # the parallel root copy and its informative progress (2026-11-18: a 117 min
+    # build-root at 2 of 8 cores; the pack step's 9 minutes went to the app)
+    "$here/setup/helper-patch/apply.sh" "$a/helper/initrd.gz.bin" \
+        "$here/setup/helper-patch/mkiosroot.sh" "$here/setup/helper-patch/job-build-root.sh"
+    sha256sum "$a/helper/initrd.gz.bin"
 fi
 # iOS 26 and watchOS: the shared step bodies and scripts (asoft-ios), the phone's jobs (here); text files only
 rm -rf "$a/setup/steps" "$a/setup/scripts" "$a/setup/phone"
