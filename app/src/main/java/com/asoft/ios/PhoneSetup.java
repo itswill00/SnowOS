@@ -409,11 +409,11 @@ final class PhoneSetup {
                 p.log(text);
             }
         };
-        Helper.Result r = Helper.run(c, "run", disks, Math.min(cpus, 4), jd, l, cancelled, true, Helper.ramMiB(c, Helper.FLOOR_IOS16));
+        Helper.Result r = Helper.run(c, "run", disks, Math.min(cpus, 4), jd, l, cancelled, true, Helper.ramMiB(c, Helper.FLOOR_IOS16), Helper.FLOOR_IOS16);
         if (Helper.worthRetry(r, Helper.FLOOR_IOS16) && !cancelled.getAsBoolean()) {
             int ram = Helper.retryRam(r, Helper.FLOOR_IOS16);
             AppLog.note(c, "setup: the kernel job failed (" + r.failure() + "); again under TCG with " + ram + " MiB");
-            r = Helper.run(c, "run", disks, Math.min(cpus, 4), jd, l, cancelled, false, ram);
+            r = Helper.run(c, "run", disks, Math.min(cpus, 4), jd, l, cancelled, false, ram, Helper.FLOOR_IOS16);
         }
         if (r.rc != 0) {
             throw new IOException("making the kernel failed: " + r.failure());
@@ -501,6 +501,6 @@ final class PhoneSetup {
             public void line(String text) {
                 p.log(text);
             }
-        }, cancelled, allowNative, ramMiB);
+        }, cancelled, allowNative, ramMiB, Helper.FLOOR_IOS16);
     }
 }

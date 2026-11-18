@@ -239,14 +239,14 @@ final class Ipa26 {
             Helper.hold = null;
             Helper.Result r;
             try {
-                r = Helper.run(c, "run", disks, cpus, jd, l, cancelled, true, Helper.ramMiB(c, Helper.FLOOR_WORK_IN_RAM));
+                r = Helper.run(c, "run", disks, cpus, jd, l, cancelled, true, Helper.ramMiB(c, Helper.FLOOR_WORK_IN_RAM), Helper.FLOOR_WORK_IN_RAM);
                 if (r.rc != 0 && fail[0] == null && Helper.worthRetry(r, Helper.FLOOR_WORK_IN_RAM) && !cancelled.getAsBoolean()) {
                     int ram = Helper.retryRam(r, Helper.FLOOR_WORK_IN_RAM);
                     AppLog.note(c, "ipa26: the helper VM failed (" + r.failure() + ", " + r.how() + "); again under TCG with " + ram + " MiB");
                     res.signed.clear();
                     res.entsDropped.clear();
                     res.warnings.clear();
-                    r = Helper.run(c, "run", disks, cpus, jd, l, cancelled, false, ram);
+                    r = Helper.run(c, "run", disks, cpus, jd, l, cancelled, false, ram, Helper.FLOOR_WORK_IN_RAM);
                 }
             } finally {
                 Helper.hold = hold;

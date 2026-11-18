@@ -719,7 +719,7 @@ final class PhoneSetup26 {
                 }
             }
         };
-        Helper.Result r = Helper.run(c, "run", all, cpus, jd, l, cancelled, true, Helper.ramMiB(c, Helper.FLOOR_WORK_IN_RAM));
+        Helper.Result r = Helper.run(c, "run", all, cpus, jd, l, cancelled, true, Helper.ramMiB(c, Helper.FLOOR_WORK_IN_RAM), Helper.FLOOR_WORK_IN_RAM);
         if (Helper.worthRetry(r, Helper.FLOOR_WORK_IN_RAM) && !cancelled.getAsBoolean()) {
             // the native engine for Linux is new (2026-11-08): once more under TCG, with the new disks made again;
             // after Android's memory killer with less RAM too
@@ -731,7 +731,7 @@ final class PhoneSetup26 {
                 scratch.delete();
                 qemuImg(c, "create", "-q", "-f", "qcow2", scratch.getPath(), String.valueOf(j.scratchBytes));
             }
-            r = Helper.run(c, "run", all, cpus, jd, l, cancelled, false, ram);
+            r = Helper.run(c, "run", all, cpus, jd, l, cancelled, false, ram, Helper.FLOOR_WORK_IN_RAM);
         }
         if (r.rc != 0) {
             // (its console and stderr went into Helper's failures for the setup's record: the screen says what it was)

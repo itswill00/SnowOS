@@ -134,13 +134,13 @@ final class Screen26 {
         Helper.hold = null;
         Helper.Result r;
         try {
-            r = Helper.run(c, "run", disks, cpus, jd, l, () -> false, true, Helper.ramMiB(c, Helper.FLOOR_WORK_IN_RAM));
+            r = Helper.run(c, "run", disks, cpus, jd, l, () -> false, true, Helper.ramMiB(c, Helper.FLOOR_WORK_IN_RAM), Helper.FLOOR_WORK_IN_RAM);
             if (Helper.worthRetry(r, Helper.FLOOR_WORK_IN_RAM)) {
                 int ram = Helper.retryRam(r, Helper.FLOOR_WORK_IN_RAM);
                 AppLog.note(c, "screen26: the helper VM failed (" + r.failure() + ", " + r.how() + "); again under TCG with "
                         + ram + " MiB");
                 said[0] = said[1] = null;
-                r = Helper.run(c, "run", disks, cpus, jd, l, () -> false, false, ram);
+                r = Helper.run(c, "run", disks, cpus, jd, l, () -> false, false, ram, Helper.FLOOR_WORK_IN_RAM);
             }
         } finally {
             Helper.hold = hold;
