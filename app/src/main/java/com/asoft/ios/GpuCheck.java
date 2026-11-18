@@ -556,7 +556,7 @@ final class GpuCheck {
         Result r = new Result();
         File d = dir(c);
         StringBuilder rep = new StringBuilder();
-        rep.append("ASoftware iOS GPU check\n");
+        rep.append("SnowOS GPU check\n");
         String version = "?";
         try {
             version = c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;

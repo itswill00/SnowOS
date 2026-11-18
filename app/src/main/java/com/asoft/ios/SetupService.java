@@ -426,7 +426,7 @@ public class SetupService extends Service {
                 AppExit.end(this, AppExit.SETUP);
                 worker = null;
                 if (state.finished) {
-                    post(a26 ? "Set up: open ASoftware iOS and choose iOS 26 or watchOS" : "iOS 16 is set up: open ASoftware iOS and tap Start iOS 16", 100);
+                    post(a26 ? "Set up: open SnowOS and choose iOS 26 or watchOS" : "iOS 16 is set up: open SnowOS and tap Start iOS 16", 100);
                     Quiet.run(this, "stopForeground", () -> stopForeground(STOP_FOREGROUND_DETACH));
                 } else if (state.error != null) {
                     post("Stopped: " + state.error, -1);

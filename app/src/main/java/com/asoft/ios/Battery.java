@@ -40,7 +40,7 @@ final class Battery {
         new android.app.AlertDialog.Builder(a)
                 .setTitle("Keep running in the background?")
                 .setMessage(why + ", and some phones close apps that run that long. "
-                        + "Allow ASoftware iOS to keep running?")
+                        + "Allow SnowOS to keep running?")
                 .setPositiveButton("Yes", (d, w) -> {
                     request(a);
                     if (goOnAfterYes) {

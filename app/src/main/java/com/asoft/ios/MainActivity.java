@@ -376,7 +376,7 @@ public class MainActivity extends Activity {
         brand.addView(logo, new LinearLayout.LayoutParams(dp(52), dp(52)));
         LinearLayout names = new LinearLayout(this);
         names.setOrientation(LinearLayout.VERTICAL);
-        TextView title = text(names, "ASoftware", 25, TEXT);
+        TextView title = text(names, "SnowOS", 25, TEXT);
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         title.setLetterSpacing(-0.01f);
         text(names, "iPhone and Apple Watch software, on this phone", 13, DIM);
@@ -1589,7 +1589,7 @@ public class MainActivity extends Activity {
         showPowerWarning();
         hint.setVisibility(!Guest.available(this) && !Guest.available26(this) && !WatchProfile.available(this)
                 && !SetupService.busy() ? View.VISIBLE : View.GONE);
-        footer.setText(String.format(java.util.Locale.ROOT, "ASoftware iOS %s  ·  %.1f GB free on this phone",
+        footer.setText(String.format(java.util.Locale.ROOT, "SnowOS %s  ·  %.1f GB free on this phone",
                 UpdateCheck.version(this), getFilesDir().getUsableSpace() / 1e9));
     }
 }

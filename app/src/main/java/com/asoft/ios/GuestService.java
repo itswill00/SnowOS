@@ -65,7 +65,7 @@ public class GuestService extends Service {
                 new Intent(this, GuestService.class).setAction("save"), PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder n = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_media_play)
-                .setContentTitle("ASoftware iOS")
+                .setContentTitle("SnowOS")
                 .setContentText(text)
                 .setContentIntent(open)
                 .setOngoing(true);

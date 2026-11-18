@@ -41,7 +41,7 @@ public class EngineService extends Service {
         nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Emulator", NotificationManager.IMPORTANCE_LOW));
         Notification n = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_media_play)
-                .setContentTitle("ASoftware iOS")
+                .setContentTitle("SnowOS")
                 .setContentText("Engine test")
                 .setOngoing(true)
                 .build();

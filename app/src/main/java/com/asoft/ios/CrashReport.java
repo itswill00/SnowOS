@@ -832,7 +832,7 @@ final class CrashReport {
     private static void copy(Context c, String s) {
         ClipboardManager cm = c.getSystemService(ClipboardManager.class);
         if (cm != null) {
-            cm.setPrimaryClip(ClipData.newPlainText("ASoftware log", s));
+            cm.setPrimaryClip(ClipData.newPlainText("SnowOS log", s));
         }
     }
 
@@ -958,7 +958,7 @@ final class CrashReport {
             return;
         }
         a.startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain")
-                .putExtra(Intent.EXTRA_SUBJECT, "ASoftware iOS: " + subject)
+                .putExtra(Intent.EXTRA_SUBJECT, "SnowOS: " + subject)
                 .putExtra(Intent.EXTRA_TEXT, text + END_MARK), "Share the log"));
     }
 
@@ -992,7 +992,7 @@ final class CrashReport {
                 }
                 Uri u = ShareProvider.uri(a, f);
                 Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain")
-                        .putExtra(Intent.EXTRA_SUBJECT, "ASoftware iOS: " + subject)
+                        .putExtra(Intent.EXTRA_SUBJECT, "SnowOS: " + subject)
                         .putExtra(Intent.EXTRA_STREAM, u)
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 send.setClipData(ClipData.newRawUri(f.getName(), u));

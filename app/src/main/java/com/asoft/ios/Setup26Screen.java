@@ -289,11 +289,11 @@ final class Setup26Screen {
         }
         gpuLink("Copy log", v -> {
             ClipboardManager cm = a.getSystemService(ClipboardManager.class);
-            cm.setPrimaryClip(ClipData.newPlainText("ASoftware GPU check", r.report));
+            cm.setPrimaryClip(ClipData.newPlainText("SnowOS GPU check", r.report));
             android.widget.Toast.makeText(a, "The log is copied", android.widget.Toast.LENGTH_SHORT).show();
         });
         gpuLink("Share log", v -> a.startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain")
-                .putExtra(Intent.EXTRA_SUBJECT, "ASoftware iOS GPU check: " + android.os.Build.MODEL)
+                .putExtra(Intent.EXTRA_SUBJECT, "SnowOS GPU check: " + android.os.Build.MODEL)
                 .putExtra(Intent.EXTRA_TEXT, r.report), "Send the GPU check's log")));
         gpuLink("Check again", v -> runCheck());
     }

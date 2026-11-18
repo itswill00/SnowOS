@@ -59,7 +59,7 @@ public class WadbPairService extends Service {
         nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Pairing with Wireless debugging", NotificationManager.IMPORTANCE_HIGH));
         Notification.Builder n = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
-                .setContentTitle("ASoftware iOS: pairing")
+                .setContentTitle("SnowOS: pairing")
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setOngoing(ongoing)

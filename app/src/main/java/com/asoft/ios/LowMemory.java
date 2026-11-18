@@ -58,7 +58,7 @@ final class LowMemory {
     static String message(String what, long avail, long need) {
         return String.format(Locale.ROOT, "Only %.1f GB of this phone's memory is free, and %s takes about %.1f GB. "
                 + "Android may close the app, and whatever was not saved is lost. Close other apps first, "
-                + "and keep ASoftware on the screen while it runs.", avail / 1e9, what, need / 1e9);
+                + "and keep SnowOS on the screen while it runs.", avail / 1e9, what, need / 1e9);
     }
 
     /**
