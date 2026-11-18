@@ -490,6 +490,19 @@ public class MainActivity extends Activity {
         showUpdate();
         UpdateCheck.check(this, this::showUpdate);
         powerWarn.postDelayed(powerRecheck, 3_000);
+        // Back from another app while iOS kept running: the guest's screen, not this list. The mark
+        // is set only by the guest screen's own pause (ScreenActivity), so it is the user's last
+        // place, never a start this screen did not ask for; the screen consumes it at once.
+        android.content.SharedPreferences p = getSharedPreferences("guest", MODE_PRIVATE);
+        if (p.getBoolean("reopen-guest", false) && !SetupService.busy()
+                && (Guest.running() || "preparing".equals(Guest.state))) {
+            p.edit().putBoolean("reopen-guest", false).apply();
+            startActivity(new Intent(this, ScreenActivity.class));
+            return;
+        }
+        if (p.getBoolean("reopen-guest", false) && !Guest.running() && !"preparing".equals(Guest.state)) {
+            p.edit().putBoolean("reopen-guest", false).apply();     // the session ended while away
+        }
     }
 
     @Override

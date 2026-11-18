@@ -719,6 +719,7 @@ public class ScreenActivity extends Activity implements SurfaceHolder.Callback, 
                     }
                     closing = true;
                     closingOff = true;
+                    getSharedPreferences("guest", MODE_PRIVATE).edit().putBoolean("reopen-guest", false).apply();
                     GuestService.powerOff(this);
                 })
                 .setNegativeButton("Cancel", null)
@@ -775,6 +776,7 @@ public class ScreenActivity extends Activity implements SurfaceHolder.Callback, 
 
     /** Quick boot: keep iOS as it is, close; the next start goes on from here. */
     private void saveAndClose() {
+        getSharedPreferences("guest", MODE_PRIVATE).edit().putBoolean("reopen-guest", false).apply();
         if (!Guest.running()) {
             finishAndRemoveTask();
             return;
@@ -919,6 +921,12 @@ public class ScreenActivity extends Activity implements SurfaceHolder.Callback, 
             touchLog.close();
             touchLog = null;
         }
+        // Leaving for another app while iOS goes on running: say so, and the home screen hands
+        // the next open back to this screen instead of its own list. Cleared by everything that
+        // ends the session (saveAndClose, turn off, a finish of this screen).
+        if (!isFinishing() && !closing && (Guest.running() || "preparing".equals(Guest.state))) {
+            getSharedPreferences("guest", MODE_PRIVATE).edit().putBoolean("reopen-guest", true).apply();
+        }
         super.onPause();
     }
 
@@ -959,6 +967,11 @@ public class ScreenActivity extends Activity implements SurfaceHolder.Callback, 
         unregisterReceiver(phoneScreenOff);
         render.post(Render::detach);
         renderThread.quitSafely();
+        // a screen left through its own ends (save and close, turn off) cleared the reopen mark
+        // already; one the system destroyed with the session over clears it here
+        if (isFinishing()) {
+            getSharedPreferences("guest", MODE_PRIVATE).edit().putBoolean("reopen-guest", false).apply();
+        }
         super.onDestroy();
     }
 
