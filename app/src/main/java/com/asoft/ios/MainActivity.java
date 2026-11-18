@@ -494,14 +494,15 @@ public class MainActivity extends Activity {
         // is set only by the guest screen's own pause (ScreenActivity), so it is the user's last
         // place, never a start this screen did not ask for; the screen consumes it at once.
         android.content.SharedPreferences p = getSharedPreferences("guest", MODE_PRIVATE);
-        if (p.getBoolean("reopen-guest", false) && !SetupService.busy()
-                && (Guest.running() || "preparing".equals(Guest.state))) {
+        if (p.getBoolean("reopen-guest", false) && !SetupService.busy()) {
             p.edit().putBoolean("reopen-guest", false).apply();
+            // iOS alive: back to its screen. iOS gone (the phone ended the app's process in the
+            // background - its 7 GiB guest is a plain kill even for a foreground service under
+            // memory pressure): the screen starts it again, from the quick save when there is one
+            // (seconds) or a boot, which is still closer to where the user was than this list. A
+            // deliberate close never leaves the mark behind.
             startActivity(new Intent(this, ScreenActivity.class));
             return;
-        }
-        if (p.getBoolean("reopen-guest", false) && !Guest.running() && !"preparing".equals(Guest.state)) {
-            p.edit().putBoolean("reopen-guest", false).apply();     // the session ended while away
         }
     }
 
