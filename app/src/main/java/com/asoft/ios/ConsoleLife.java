@@ -68,7 +68,12 @@ final class ConsoleLife {
         if (seen.size() >= KEYS_MAX) {
             return false;
         }
-        return seen.add(key(l));
+        String k = key(l);
+        if (!seen.add(k)) {
+            return false;
+        }
+        seenLower.add(k.toLowerCase(java.util.Locale.ROOT));
+        return true;
     }
 
     /**
@@ -103,4 +108,22 @@ final class ConsoleLife {
     int distinct() {
         return seen.size();
     }
+
+    /**
+     * Whether a console line matched @text (as a lowercase substring) since the boot began. The
+     * keys digits are flattened, so this matches only text with no digits of its own; the stage
+     * words (FirstStartWatch.STAGES) are chosen so they are. Case-insensitive over the keys, which
+     * are lower-cased here once.
+     */
+    boolean saw(String text) {
+        String want = text.toLowerCase(java.util.Locale.ROOT);
+        for (String k : seenLower) {
+            if (k.contains(want)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private final java.util.List<String> seenLower = new java.util.ArrayList<>();
 }

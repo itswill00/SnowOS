@@ -117,7 +117,8 @@ public class SetupLimitsTest {
         FirstStartWatch w = new FirstStartWatch(0);
         feed59(w, 0, 120);
         assertEquals(FirstStartWatch.Verdict.WAIT, w.verdict(120 * MIN));          // the old limit
-        assertTrue(w.status(120 * MIN).contains("Still working: last sign of life"));
+        assertTrue(w.status(120 * MIN).contains("120 min in,"));
+        assertTrue(w.status(120 * MIN).contains("Last sign of life"));
         for (int m = 121; m <= 300; m++) {
             w.observe(m * MIN, "exec lateDaemon" + (char) ('a' + m % 26) + (char) ('a' + m / 26) + "\n", false);
             assertEquals(FirstStartWatch.Verdict.WAIT, w.verdict(m * MIN));

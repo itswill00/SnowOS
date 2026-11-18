@@ -52,15 +52,55 @@ final class FirstStartWatch {
         return (nowMs - lastSign) / SetupLimits.MIN;
     }
 
+    /**
+     * The boot's stage from the console's own words, or "" before the kernel says anything. The
+     * lines are the guest's, so the stages read the same on every phone; a stage stays until a
+     * later one replaces it. Ordered as a healthy boot prints them.
+     */
+    private static final String[][] STAGES = {
+            // console fragment (case-insensitive contains), what the user reads
+            {"bsd/init", "the kernel is starting"},
+            {" attracting objects", "the kernel is starting"},
+            {"launchd", "the system's first process (launchd) is starting"},
+            {"apfs_module_start", "mounting the disk"},
+            {"hfs:", "mounting the disk"},
+            {"IOGraphics", "the display driver is coming up"},
+            {"backboardd", "the display server (backboardd) is starting"},
+            {"SpringBoard", "the home screen app (SpringBoard) is starting"},
+            {"assetsd", "loading assets (wallpapers, icons)"},
+            {"mediaserverd", "the media server is starting"},
+            {"dataaccessd", "account and data services are starting"},
+            {"lockbot", "the lock screen is coming up"},
+            {"SWEET FB: display off", "the screen dimmed after boot"},
+    };
+
+    /** What the boot is doing now, in plain words, from the last console lines; "" before the kernel talks. */
+    String stage() {
+        return stage(life);
+    }
+
+    /** Same as stage(), on a caller's ConsoleLife (tests feed lines without a boot). */
+    static String stage(ConsoleLife l) {
+        for (String[] s : STAGES) {
+            if (l.saw(s[0])) {
+                return s[1];
+            }
+        }
+        return l.lines() > 0 ? "the kernel is starting" : "";
+    }
+
     /** The line the setup screen shows while it waits. */
     String status(long nowMs) {
         long min = (nowMs - start) / SetupLimits.MIN;
+        String stage = stage();
         if (!anyConsole) {
-            return String.format(Locale.ROOT, "Waiting for iOS to start (%d min). Nothing from it yet.", min);
+            return String.format(Locale.ROOT, "Booting iOS (%d min): waiting for its first words on the console.", min);
         }
         long ago = sinceSignMin(nowMs);
-        return String.format(Locale.ROOT, "iOS is setting itself up (%d min; a fast phone needs about 25). Still working: last sign of life %s.",
-                min, ago < 1 ? "just now" : ago + " min ago");
+        String doing = stage.isEmpty() ? "starting" : stage;
+        String pace = min <= 5 ? "" : min <= 25 ? "" : " Slower than a fast phone (about 25 min), but still working.";
+        return String.format(Locale.ROOT, "First start: %d min in, %s. Last sign of life %s.%s",
+                min, doing, ago < 1 ? "just now" : ago + " min ago", pace);
     }
 
     /** Why it gave up, in plain words, for the error the user reads. */
