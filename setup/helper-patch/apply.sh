@@ -12,4 +12,10 @@ for f in "$@"; do
     [ -f "$f" ] || { echo "no $f" >&2; exit 1; }
     install -m 755 "$f" "$d/asoft/$(basename "$f")"
 done
+# the multithreaded apfs-fuse, when the folder carries it: the stock one serves
+# reads from one FUSE loop, so the parallel copy waited in line at the mount
+here=$(cd "$(dirname "$0")" && pwd)
+if [ -f "$here/bin/apfs-fuse-mt" ]; then
+    install -m 755 "$here/bin/apfs-fuse-mt" "$d/usr/local/bin/apfs-fuse"
+fi
 (cd "$d" && find . -print0 | LC_ALL=C sort -z | cpio -0 -o -H newc --owner=0:0 --quiet | gzip -6) > "$1"

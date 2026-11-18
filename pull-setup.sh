@@ -28,7 +28,8 @@ if [ "${ONLY:-}" != setup ]; then
     cp "$src/xnu/out-0103/kernel.development.sweet" "$a/xnu/"
     # the fork's own tuned jobs into the helper's initramfs (setup/helper-patch):
     # the parallel root copy and its informative progress (2026-11-18: a 117 min
-    # build-root at 2 of 8 cores; the pack step's 9 minutes went to the app)
+    # build-root at 2 of 8 cores; the pack step's 9 minutes went to the app),
+    # and the multithreaded apfs-fuse the parallel copy needs (its bin/)
     "$here/setup/helper-patch/apply.sh" "$a/helper/initrd.gz.bin" \
         "$here/setup/helper-patch/mkiosroot.sh" "$here/setup/helper-patch/job-build-root.sh"
     sha256sum "$a/helper/initrd.gz.bin"
