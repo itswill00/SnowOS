@@ -77,8 +77,9 @@ final class PhoneSetup {
     /**
      * Bytes the rest of the run needs free at its height, beyond what it has on disk already (the screen
      * and the checks): measured on the S25 (2026-11-08) the members 5.84 GB, the scratch disk 7.32 GB and
-     * the root 12.24 GB at once, then the root and its packed copy (6.19 GB), then the first start's
-     * writes and save (3.9 GB). Bytes already downloaded count against the members.
+     * the root 12.24 GB at once, then the first start's writes and save (3.9 GB). The pack step is gone
+     * (see pack()): the root disk is installed as it is, so its 6.2 GB packed copy is never written.
+     * Bytes already downloaded count against the members.
      */
     static long needBytes(Context c) {
         File w = work(c);
@@ -87,10 +88,6 @@ final class PhoneSetup {
             // the height: the members, the scratch disk and the root disk at once; later steps free more than they add
             need = (done(c, "ipsw") ? 0 : Math.max(0, 5_840_000_000L - allocated(new File(w, "ipsw-sparse.ipsw"))))
                     + 7_400_000_000L + 12_300_000_000L - allocated(new File(w, "root.qcow2")) - allocated(new File(w, "scratch.qcow2"));
-        } else if (!done(c, "pack")) {
-            // the IPSW and the scratch disk go before the packed copy is written
-            need = 6_300_000_000L - allocated(new File(w, "ipsw-sparse.ipsw")) - allocated(new File(w, "scratch.qcow2"))
-                    - allocated(new File(w, "disk.qcow2"));
         } else if (!done(c, "firststart")) {
             need = 4_000_000_000L - allocated(new File(w, "root.qcow2"));      // the root goes before iOS's first start
         } else {
@@ -139,16 +136,20 @@ final class PhoneSetup {
         scratch.delete();
         File disk = new File(w, "disk.qcow2");
         if (!done(c, "pack")) {
-            p.step("pack", -1, "Packing the iOS disk");
-            disk.delete();
-            String[] r = Emu.qemuImg(c, "convert", "-O", "qcow2", "-c", "-o", "compression_type=zstd", root.getPath(), disk.getPath());
-            if (!"0".equals(r[0])) {
-                disk.delete();
-                throw new IOException("packing the disk failed: " + r[1].trim());
+            // Pack, as the PC's Send-ToPhone does, would be a 9-minute single-threaded zstd pass
+            // over the 12.5 GB root for 6 GB less on disk. On the phone the disk does not travel, and
+            // the root.qcow2 is a fine qcow2 already (the first start and the user disk build on it),
+            // so the pack step installs the root as it is: the build's files() list "disk.qcow2" for
+            // Installer.finish(), so that is a rename. A run that stopped before 0.2.0 with a packed
+            // disk.qcow2 keeps working: done("pack") sees its marker, and the packed image is a
+            // smaller but complete copy of the same filesystem.
+            p.step("pack", 100, "Keeping the iOS disk");
+            root.renameTo(disk);
+            if (!disk.isFile()) {
+                throw new IOException("cannot keep the built disk");
             }
             setDone(c, "pack");
         }
-        root.delete();
         if (!done(c, "install")) {
             p.step("install", -1, "Setting iOS up in the app");
             try (FileOutputStream o = new FileOutputStream(new File(w, "asoft-bundle.json"))) {
